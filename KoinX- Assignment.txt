@@ -1,0 +1,139 @@
+KoinX- Assignment
+
+// ======= Backend (Node.js with Express) =======
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+
+const app = express();
+const PORT = 5000;
+
+app.use(cors());
+
+const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+
+// Fetch Bitcoin price data
+app.get('/api/price', async (req, res) => {
+    try {
+        const { data } = await axios.get(${COINGECKO_API}/simple/price, {
+            params: {
+                ids: 'bitcoin',
+                vs_currencies: 'usd,inr',
+                include_24hr_change: true,
+            },
+        });
+        res.json(data);
+    } catch (error) {
+        res.status(500).send('Failed to fetch price data');
+    }
+});
+
+// Fetch trending coins data
+app.get('/api/trending', async (req, res) => {
+    try {
+        const { data } = await axios.get(${COINGECKO_API}/search/trending);
+        res.json(data.coins.slice(0, 3)); // Return only top 3 trending coins
+    } catch (error) {
+        res.status(500).send('Failed to fetch trending coins');
+    }
+});
+
+app.listen(PORT, () => console.log(Server running on http://localhost:${PORT}));
+
+// ======= Frontend (React.js with Hooks) =======
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './App.css';
+
+function App() {
+    const [bitcoinData, setBitcoinData] = useState(null);
+    const [trendingCoins, setTrendingCoins] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [priceRes, trendingRes] = await Promise.all([
+                    axios.get('/api/price'),
+                    axios.get('/api/trending'),
+                ]);
+                setBitcoinData(priceRes.data.bitcoin);
+                setTrendingCoins(trendingRes.data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        fetchData();
+    }, []);
+
+    return (
+        <div className="app">
+            <header className="app-header">
+                <h1>Crypto Dashboard</h1>
+            </header>
+
+            <section className="bitcoin-section">
+                <h2>Bitcoin Price</h2>
+                {bitcoinData ? (
+                    <div>
+                        <p>USD: ${bitcoinData.usd.toLocaleString()}</p>
+                        <p>INR: ₹{bitcoinData.inr.toLocaleString()}</p>
+                        <p>24H Change (USD): {bitcoinData.usd_24h_change.toFixed(2)}%</p>
+                    </div>
+                ) : (
+                    <p>Loading...</p>
+                )}
+            </section>
+
+            <section className="trending-section">
+                <h2>Trending Coins</h2>
+                <div className="trending-coins">
+                    {trendingCoins.length ? (
+                        trendingCoins.map((coin) => (
+                            <div key={coin.item.id} className="coin-card">
+                                <img src={coin.item.small} alt={coin.item.name} />
+                                <p>{coin.item.name} ({coin.item.symbol.toUpperCase()})</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p>Loading...</p>
+                    )}
+                </div>
+            </section>
+        </div>
+    );
+}
+
+export default App;
+
+// ======= App.css =======
+.app {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+section {
+    margin: 20px 0;
+}
+
+.trending-coins {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+}
+
+.coin-card {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.coin-card img {
+    width: 50px;
+    height: 50px;
+}
